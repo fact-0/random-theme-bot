@@ -7,7 +7,7 @@ const readme = fs.readFileSync("README.md").toString();
 const themeObject = require('./themeObject.json');
 
 const article = function(msg){
-	return "\`\`\`"+msg+"\`\`\`"
+	return "\`\`\`"+msg.replace(/\`/g, '=')+"\`\`\`";
 }
 
 function getRandomInt(min, max) {
