@@ -18,6 +18,21 @@ function getRandomInt(min, max) {
 const randomPop = function(msgList){
     return msgList[getRandomInt(0, msgList.length)];
 }
+const getNamedArray = async (guild) => {
+
+	const members = await guild.members.fetch();
+
+	const membersArray = members.map((member)=>{
+		const nickname = member.displayName;
+		const roles = [...member.roles.cache];
+		const hasNamed = roles.some((role)=> role[1].name === '네임드');
+		return [nickname, hasNamed];
+	});
+
+	const namedMembers = membersArray.filter((element)=>element[1]).map((filteredMember)=>filteredMember[0]);
+
+	return namedMembers.length > 0 ? namedMembers : [ '네임드 역할로 지정된 유저가 없습니다' ];
+}
 
 const randomTheme = function(themes, key){
 	if(key === ''){
@@ -55,21 +70,19 @@ discordClient.on('ready', () => {
   console.log(`Logged in as ${discordClient.user.tag}!`);
 });
 
-discordClient.on('message', msg => {
-	const {content, channel, author} = msg;
-	const currentChannel = channel.name;
+discordClient.on('message', async msg => {
+	const {content, channel, author, guild} = msg;
+	//const currentChannel = channel.name;
+	const namedMembers = await getNamedArray(guild);
 	const prefix = '=';
 
 	if(author.bot){
 		return;
 	}
 
-	/*
-	//테스트용
-	if(author.username === 'fact'){
-		console.log(content);
-	}
-	*/
+	// if(author.username === 'fact'){
+	// 	console.log(namedMembers);
+	// }
 
 	if(content.substring(0,1) === prefix){
 		String.prototype.replaceAt=function(index, character) {
@@ -99,7 +112,13 @@ discordClient.on('message', msg => {
 			if(commands.length === 1){ // 대분류 목록
 				channel.send(printList(themeObject, ''));
 			}else if(commands.length === 2){ // 소분류 목록
-				channel.send(printList(themeObject, commands[1]));
+
+				if(commands[1] === '네임드'){
+					channel.send(article(namedMembers.join('\n')));
+				}else{
+					channel.send(printList(themeObject, commands[1]));
+				}
+
 			}
 			return;
 		}
@@ -108,10 +127,22 @@ discordClient.on('message', msg => {
 			if(commands.length === 1){ // 대분류 랜덤
 				channel.send(randomTheme(themeObject, ''));
 			}else if(commands.length === 2){ // 소분류 랜덤
-				channel.send(randomTheme(themeObject, commands[1]));
+				
+				if(commands[1] === '네임드'){
+					channel.send(randomPop(namedMembers));
+				}else{
+					channel.send(randomTheme(themeObject, commands[1]));
+				}
+
 			}
 			return;
 		}
+
+		if(commands[0] === '네임드'){
+			channel.send(randomPop(namedMembers));
+			return;
+		}
+
 		channel.send(randomTheme(themeObject, commands[0]));
 		return;
 	}
